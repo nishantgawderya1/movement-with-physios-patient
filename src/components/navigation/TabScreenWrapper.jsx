@@ -24,7 +24,7 @@ export default function TabScreenWrapper({ children, tabIndex }) {
     if (isFocused) {
       // positive = came from left tab (slide in from right)
       // negative = came from right tab (slide in from left)
-      var direction = tabIndex > prevIndex.current ? 1 : -1;
+      var direction = tabIndex > prevIndex.current ? -1 : 1;
       prevIndex.current = tabIndex;
 
       translateX.setValue(16 * direction);
