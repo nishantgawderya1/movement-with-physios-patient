@@ -33,7 +33,9 @@ export const PATIENT_ROUTES = {
 
   // Messages
   MESSAGES: 'MESSAGES',
+  MESSAGES_SCREEN: 'MESSAGES_SCREEN', // stack-internal name — avoids MESSAGES > MESSAGES nesting warning
   CHAT: 'CHAT',
+  CHAT_ROOM: 'CHAT_ROOM',
 
   // Progress
   PROGRESS: 'PROGRESS',

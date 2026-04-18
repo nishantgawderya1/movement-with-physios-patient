@@ -18,6 +18,7 @@ Update this file after every session.
 | Tab navigation | `@react-navigation/bottom-tabs` v7 |
 | Fonts | `@expo-google-fonts/lora` + `@expo-google-fonts/nunito` |
 | Icons | `@expo/vector-icons` (Ionicons) |
+| SVG | `react-native-svg` (already installed — used in AchievementIcon) |
 | Haptics | `expo-haptics` |
 | Gestures | `react-native-gesture-handler` ~2.28.0 |
 | Safe Area | `react-native-safe-area-context` ~5.6.0 |
@@ -33,24 +34,26 @@ Update this file after every session.
 5. **JSDoc comments** on every exported component describing props.
 6. **One component per file.** No multi-export component files.
 7. **`var` declarations** are preferred over `const`/`let` in component files (existing code style).
-8. **Folder structure:**
+8. **Animations**: Use `Animated` API only. Do NOT use `react-native-reanimated` unless explicitly requested.
+9. **Folder structure:**
    ```
    src/
      components/
+       auth/           ← OnboardingShell, SelectableCard, SelectablePill
        booking/        ← TherapistCard
-       navigation/     ← AnimatedTabBar
-       ui/             ← PrimaryButton, OutlineButton
+       navigation/     ← AnimatedTabBar, TabScreenWrapper
+       ui/             ← PrimaryButton, OutlineButton, AchievementIcon
      constants/        ← colors.js, fonts.js, routes.js
      context/          ← OnboardingContext, PatientContext
      navigation/
-       stacks/         ← BookStack
+       stacks/         ← BookStack, HomeStack
        AppNavigator.jsx
        AuthNavigator.jsx
        MainNavigator.jsx
        RootNavigator.jsx
      screens/
        auth/           ← LoginScreen, onboarding steps, OnboardingCompleteScreen
-       main/           ← HomeScreen, Book*, Progress, Profile
+       main/           ← HomeScreen, Book*, Progress, Profile, SessionScreen
        splash/         ← SplashScreen
    ```
 
@@ -70,8 +73,12 @@ colors.textMedium      // #4A5568
 colors.textLight       // #A0AEC0
 colors.textOnPrimary   // #FFFFFF
 colors.border          // #E2E8F0
+colors.cardBorder      // subtle border for cards/circles
 colors.divider         // #EDF2F7
 colors.danger          // #E53E3E
+colors.inputBg         // input field background
+colors.inputBorder     // input field border
+colors.placeholder     // input placeholder text color
 colors.planCardStart   // #00B894  (gradient start)
 colors.planCardEnd     // #007A5E  (gradient end)
 ```
@@ -106,11 +113,14 @@ fonts.bold    = '700'  fonts.extrabold = '800'
 ### `src/constants/routes.js` — Key values
 ```js
 PATIENT_ROUTES.HOME              = 'HOME'
+PATIENT_ROUTES.HOME_SCREEN       = 'HOME_SCREEN' // stack-internal — avoids HOME>HOME nesting
 PATIENT_ROUTES.SESSION           = 'SESSION'   // ← exercise player screen
 PATIENT_ROUTES.BOOK_APPOINTMENT  = 'BOOK_APPOINTMENT'
 PATIENT_ROUTES.BOOK_THERAPIST    = 'BOOK_THERAPIST'
 PATIENT_ROUTES.SLOT_SELECTION    = 'SLOT_SELECTION'
 PATIENT_ROUTES.BOOKING_CONFIRMED = 'BOOKING_CONFIRMED'
+PATIENT_ROUTES.MESSAGES          = 'MESSAGES'  // ← conversation list (Chat tab root)
+PATIENT_ROUTES.CHAT_ROOM         = 'CHAT_ROOM' // ← single chat room
 PATIENT_ROUTES.PROGRESS          = 'PROGRESS'
 PATIENT_ROUTES.PROFILE           = 'PROFILE'
 // Auth
@@ -138,6 +148,11 @@ App.jsx
                         └── isOnboardingComplete=true  → MainNavigator.jsx
 ```
 
+### RootNavigator — `src/navigation/RootNavigator.jsx`
+- Uses `createStackNavigator`
+- `screenOptions={{ headerShown: false, animationEnabled: false, gestureEnabled: false }}`
+- **Zero animation on root switch** — prevents bounce/snap when flipping isOnboardingComplete
+
 ### AuthNavigator — `src/navigation/AuthNavigator.jsx`
 - Uses `createStackNavigator` from `@react-navigation/stack`
 - `TransitionPresets.SlideFromRightIOS` with spring config:
@@ -149,10 +164,12 @@ App.jsx
 ### MainNavigator — `src/navigation/MainNavigator.jsx`
 - Uses `createBottomTabNavigator`
 - `tabBar` prop → renders `<AnimatedTabBar>` (custom component)
-- `lazy: false` — preloads all 4 tabs for instant switching
+- `lazy: false` — preloads all 5 tabs for instant switching
 - `headerShown: false` on all screens
-- 4 tabs: HOME → BookStack → PROGRESS → PROFILE
-- HOME tab uses **HomeStack** (not bare HomeScreen) so SESSION can be pushed inside it
+- **5 tabs**: HOME(0) → BookStack(1) → **MESSAGES/Chat(2)** → PROGRESS(3) → PROFILE(4)
+- HOME tab uses **HomeStack** so SESSION can be pushed inside it
+- MESSAGES tab uses **MessagesStack** so CHAT_ROOM can be pushed inside it
+- Chat tab (center) uses elevated CenterTabButton — not a standard tab icon
 
 ### HomeStack — `src/navigation/stacks/HomeStack.jsx`
 - Uses `createStackNavigator` (NOT native-stack)
@@ -162,16 +179,65 @@ App.jsx
 ### BookStack — `src/navigation/stacks/BookStack.jsx`
 - Uses `createStackNavigator` (NOT native-stack)
 - Same `TransitionPresets.SlideFromRightIOS` spring config as AuthNavigator
+- `BookTherapistScreen` has `gestureEnabled: false` — prevents accidental swipe-back from tab root
 - Screens: BookTherapist → SlotSelection → BookingConfirmed
+
+### MessagesStack — `src/navigation/stacks/MessagesStack.jsx`
+- Uses `createStackNavigator` (NOT native-stack)
+- Same `TransitionPresets.SlideFromRightIOS` spring config as BookStack
+- `MessagesScreen` has `gestureEnabled: false` — prevents accidental swipe-back from tab root
+- Screens: MessagesScreen → ChatRoomScreen
 
 ### AnimatedTabBar — `src/components/navigation/AnimatedTabBar.jsx`
 - Custom tab bar component, receives `{ state, descriptors, navigation }` from React Navigation
+- **5 tabs**: renders `CenterTabButton` for the Chat tab (index 2); standard Pressable for the rest
 - **Teal pill indicator**: `width: 32, height: 3, borderRadius: 99, backgroundColor: colors.primary`
+  - Pill **opacity: 0** when Chat tab is active (button itself shows active state)
 - **Position**: `position: 'absolute', top: 0`, centered via `marginLeft: (tabWidth - 32) / 2`
-- **Animation**: `Animated.spring` on `pillX` value — `{ stiffness: 300, damping: 30, useNativeDriver: true }`
+- **Animation**: `Animated.spring` on `pillX` + `Animated.timing` on `pillOpacity`
 - **Haptics**: `Haptics.impactAsync(ImpactFeedbackStyle.Light)` on every tab press
 - **Safe area**: `useSafeAreaInsets()` — height = `60 + insets.bottom`
+- **Unread polling**: polls `chatService.getConversations()` every 15s for total unread count → shows badge on `CenterTabButton`
 - Uses `navigation.emit({ type: 'tabPress' })` for correct React Navigation event handling
+
+---
+
+## Tab Screen Entry Animation — `TabScreenWrapper`
+
+### `src/components/navigation/TabScreenWrapper.jsx`
+- **Purpose**: Wraps the root `<SafeAreaView>` of each tab screen to animate entry on every tab focus.
+- **Props**: `{ children, tabIndex: number }`
+  - `tabIndex` values: Home=0, Book=1, **Chat/Messages=2**, Progress=3, Profile=4
+- **How it works**:
+  - `useIsFocused()` — triggers when the tab becomes active
+  - `useNavigationState(state => state.index)` — reads the bottom tab's current index
+  - `prevIndex` ref tracks the previously focused tab index across renders
+  - Direction logic (corrected):
+    ```js
+    var direction = tabIndex > prevIndex.current ? -1 : 1;
+    // Moving right (higher index) → direction=-1 → starts at -16px (slides in from left)
+    // Moving left  (lower index)  → direction=+1 → starts at +16px (slides in from right)
+    ```
+  - Animation: `opacity 0→1` + `translateX ±16→0` in **210ms** parallel, `useNativeDriver: true`
+- **Used in all 4 tab root screens** — wrap pattern:
+  ```jsx
+  return (
+    <TabScreenWrapper tabIndex={N}>
+      <SafeAreaView style={styles.safe}>
+        {/* ... */}
+      </SafeAreaView>
+    </TabScreenWrapper>
+  );
+  ```
+
+---
+
+## Onboarding Layout — `OnboardingShell`
+
+### `src/components/auth/OnboardingShell.jsx`
+- `ScrollView` uses `contentContainerStyle={{ flexGrow: 1 }}`
+- Children are wrapped in `<View style={{ flex: 1, paddingHorizontal: 24 }}>`
+- This `flex: 1` cascades to all onboarding screens, filling the vertical space on all screen sizes
 
 ---
 
@@ -191,6 +257,14 @@ borderRadius: 12   height: 52
 label: fonts.body.semibold, color: colors.primary, fontSize: 15, letterSpacing: 0.3
 ```
 
+### `src/components/ui/AchievementIcon.jsx`
+- Renders one of 3 premium SVG icons via `react-native-svg` based on `type` prop
+- Props: `{ type: 'flame' | 'star' | 'trophy', size: number = 48 }`
+- Used in `ProgressScreen` achievements section (replaces emoji icons)
+- FlameIcon: outer warm amber + inner teal core, viewBox="0 0 48 48"
+- StarIcon: golden star with inner teal accent
+- TrophyIcon: amber trophy with teal base accent
+
 ---
 
 ## Screen Inventory & Navigation Wiring
@@ -198,30 +272,111 @@ label: fonts.body.semibold, color: colors.primary, fontSize: 15, letterSpacing: 
 ### Auth Screens (`src/screens/auth/`)
 All wrapped in `OnboardingProvider` via `AuthNavigator`.
 
-| Screen | Notes |
+| Screen | Key Design Notes |
 |---|---|
 | `SplashScreen.jsx` | Logo + auto-advance |
 | `LoginScreen.jsx` | Heading: `fonts.heading.regular` |
-| `PersonalInfoScreen.jsx` | — |
-| `PainLocationScreen.jsx` | — |
-| `PainSeverityScreen.jsx` | — |
-| `PainDurationScreen.jsx` | — |
-| `TreatmentHistoryScreen.jsx` | — |
-| `RecoveryGoalsScreen.jsx` | — |
-| `AvailabilityScreen.jsx` | — |
-| `OnboardingCompleteScreen.jsx` | Heading: `fonts.heading.regular` |
+| `PersonalInfoScreen.jsx` | Inputs vertically centered; uses `colors.inputBg/inputBorder/placeholder` |
+| `PainLocationScreen.jsx` | FlatList content centered vertically |
+| `PainSeverityScreen.jsx` | **Premium 58px perfect-circle grid** — see below |
+| `PainDurationScreen.jsx` | Full-width icon-based cards replace pills |
+| `TreatmentHistoryScreen.jsx` | Two large stacked Yes/No cards |
+| `RecoveryGoalsScreen.jsx` | 2-column icon-based cards |
+| `AvailabilityScreen.jsx` | 2-column icon-based cards (morning/afternoon/evening) |
+| `OnboardingCompleteScreen.jsx` | Mount animation: ring scale → check fade → text slide → button slide |
 
-`OnboardingShell.jsx` (`src/components/auth/`) — step progress wrapper used by onboarding screens.
+`OnboardingShell.jsx` (`src/components/auth/`) — step progress wrapper used by all onboarding screens.
+
+#### `PainSeverityScreen.jsx` — Pain Scale Grid
+- Grid: 5 columns × 2 rows of **58px perfect circles** (`width:58, height:58, borderRadius:29`)
+- Unselected: `borderWidth:1.5, colors.cardBorder`, subtle `shadowOpacity:0.06`
+- Selected: `backgroundColor:colors.primary`, no border, no shadow
+- **Selected value display** (when a number is chosen):
+  - Large number: `fontSize:72, fonts.semibold, color:colors.primary`
+  - Label: `fonts.sm, colors.textMedium, fonts.medium`
+- **Placeholder** when nothing selected: `"Tap a number to rate your pain"` in `fonts.medium`
+- Number `10` uses `fonts.sm` (smaller to fit the circle)
+- Legend row at `marginTop: 20` (1=No Pain … 10=Worst Pain)
+
+### Chat Screens (`src/screens/messages/`)
+
+#### `MessagesScreen.jsx`
+- Wrapped in `<TabScreenWrapper tabIndex={2}>`
+- WhatsApp-style conversation list using `ConversationRow` components
+- Loads from `chatService.getConversations()`
+- Header: "Messages" in `fonts.heading.regular` 22px
+- Each row: teal avatar initials, online dot, unread badge, therapist name + last message + time
+- Tap → navigate to `PATIENT_ROUTES.CHAT_ROOM` with `{ roomId, therapistName, therapistAvatar, isOnline }`
+- Empty state with centered text + emoji
+
+#### `ChatRoomScreen.jsx`
+- Custom header (no `headerShown`): back arrow + avatar + name (Lora) + online status + video call placeholder
+- Inverted FlatList for message history (bottom-up rendering)
+- `chatService.getMessages(roomId)` on mount + `chatService.markAsRead(roomId, null)` to clear badge
+- Optimistic send: appends message to state immediately, calls `chatService.sendMessage`
+- Long-press on any bubble → sets `replyTo` state → shows `ReplyPreview` in composer
+- Typing indicator poll: `setInterval → chatService.getTypingStatus(roomId)` every 3s
+- **Keyboard handling**: Manual `Keyboard.addListener` — no `KeyboardAvoidingView` anywhere
+  - `keyboardWillShow` → `setKeyboardHeight(e.endCoordinates.height)` (fires early on iOS, no visible jump)
+  - `keyboardWillHide` → `setKeyboardHeight(0)`
+  - Composer `marginBottom: keyboardHeight` pushes the bar exactly above the keyboard — no estimation
+- **Composer bar is inlined directly in `ChatRoomScreen.jsx`** (not imported from `ComposerBar.jsx`)
+  - Row: paperclip/attach icon (left) | TextInput (center, flex 1) | send button (right)
+  - Rendered **outside** the loading ternary so it is always visible
+  - `composerOuter` paddingBottom set inline: `keyboardHeight > 0 ? 12 : insets.bottom > 0 ? insets.bottom : 12`
+    - Tab bar is hidden when ChatRoom is active (see MainNavigator), so no 60px clearance needed
+    - On older devices (no home indicator) falls back to 12px
+  - Back button `Pressable` uses `hitSlop={{ top:12, bottom:12, left:12, right:12 }}`
+    for a reliable tap target; calls `navigation.goBack()`
+  - Send button: 42px teal circle, `colors.primary`; disabled = `colors.textLight` grey
+  - Scale-pulse animation on send: 1 → 1.12 → 1, two `Animated.timing` @ 75ms each, `useNativeDriver: true`
+  - `ReplyPreview` shown above the input row when `replyTo` state is set
+- **Attachment Sheet**: `isAttachmentOpen` state + `openAttachmentSheet` / `closeAttachmentSheet` handlers
+  - Paperclip `onPress` → `openAttachmentSheet()`
+  - `<AttachmentSheet visible={isAttachmentOpen} onClose={closeAttachmentSheet} />` rendered
+    **at the bottom of the root `SafeAreaView`**, outside FlatList and composer, overlaying everything
+- **Swipe-to-dismiss keyboard**:
+  - `PanResponder` attached to `composerOuter` View (the outer wrapper, NOT the TextInput itself)
+    - `onMoveShouldSetPanResponder`: `dy > 8 && |dy| > |dx| * 1.5` — clearly downward only
+    - `onPanResponderRelease`: `dy > 20` → `Keyboard.dismiss()`
+  - FlatList `onScrollBeginDrag={() => Keyboard.dismiss()}` dismisses keyboard when scrolling messages
+  - `keyboardShouldPersistTaps="handled"` kept on FlatList (unchanged)
+
+#### `AttachmentSheet.jsx` (`src/components/chat/`)
+- Modal-based overlay (`transparent`, `animationType="none"`) with `statusBarTranslucent`
+- Inner `AnimatedSheet` component re-mounts on every `visible=true` so spring always starts fresh
+- **Slide animation**: `Animated.spring` on `translateY` (400 → 0 open, 0 → 400 close), `useNativeDriver: true`
+- **Backdrop**: `rgba(0,0,0,0.45)` with `StyleSheet.absoluteFillObject` + `<Pressable>` to dismiss
+- **Sheet header**: gray pill drag handle (40×4, `colors.border`) + "Share" title centered
+- **6-option grid** (2 columns, 3 rows via `flexWrap: 'wrap'`, `width: '30%'` per cell):
+
+  | Ionicon                  | Label    |
+  |--------------------------|----------|
+  | `camera-outline`         | Camera   |
+  | `image-outline`          | Gallery  |
+  | `document-outline`       | Document |
+  | `folder-outline`         | Files    |
+  | `location-outline`       | Location |
+  | `musical-notes-outline`  | Audio    |
+
+- Icon circle: 58px, `borderRadius: 29`, `backgroundColor: '#E8F5F0'`, icon color `#1A5C4A`
+- Option label: `fonts.body.regular`, `fontSize: 12`, `colors.textMedium`
+- Press any option → `console.log('[AttachmentSheet] selected:', label)` then slides down + closes
+
+#### `ComposerBar.jsx` (`src/components/chat/`)
+- Standalone component — kept as a reusable reference but **not currently imported by `ChatRoomScreen`**
+- Same visual spec as the inlined composer: 42px buttons, 22px borderRadius input, 1px borderTop
+- Can be re-imported if the composer needs to be reused elsewhere
 
 ### Main Screens (`src/screens/main/`)
 
 #### `HomeScreen.jsx`
+- Wrapped in `<TabScreenWrapper tabIndex={0}>`
 - Accepts `{ navigation }` prop
-- Imports `PATIENT_ROUTES` from routes
 - Interactive elements wired:
   - 🔔 Bell icon → `onPress: () => {}` (TODO stub)
   - 👤 Avatar → `navigation.navigate(PATIENT_ROUTES.PROFILE)`
-  - **START SESSION** → `navigation.navigate(PATIENT_ROUTES.SESSION)` ← updated
+  - **START SESSION** → `navigation.navigate(PATIENT_ROUTES.SESSION)`
   - **View All** (Pain Trend) → `navigation.navigate(PATIENT_ROUTES.PROGRESS)`
   - **Book Session** quick action → `navigation.navigate(BOOK_APPOINTMENT, { screen: BOOK_THERAPIST })`
   - **View Progress** quick action → `navigation.navigate(PATIENT_ROUTES.PROGRESS)`
@@ -229,9 +384,11 @@ All wrapped in `OnboardingProvider` via `AuthNavigator`.
 - Headings: `fonts.heading.regular` + `lineHeight: fontSize * 1.35`
 
 #### `BookTherapistScreen.jsx`
-- Accepts `{ navigation }` prop
+- Wrapped in `<TabScreenWrapper tabIndex={1}>`
+- **No back button** — this is a tab root; back button was removed
+- Header is a single centered `<Text style={headerTitle}>Book Therapist</Text>`
 - TherapistCard onPress → `navigation.navigate(PATIENT_ROUTES.SLOT_SELECTION, { therapist })`
-- Back button → `navigation.goBack()`
+- `gestureEnabled: false` set in BookStack to prevent swipe-back from tab root
 
 #### `SlotSelectionScreen.jsx`
 - Accepts `{ navigation, route }` prop
@@ -242,17 +399,31 @@ All wrapped in `OnboardingProvider` via `AuthNavigator`.
 #### `BookingConfirmedScreen.jsx`
 - Accepts `{ navigation, route }` prop
 - Reads `therapist`, `slot`, `date` from `route.params`
+- All text uses `fonts.heading.regular` (Lora) for therapist name, `fonts.body.*` (Nunito) for details
 - Back to Home → `navigation.navigate(PATIENT_ROUTES.HOME)` (navigate, not goBack)
 - Animated scale-in checkmark on mount
 
 #### `ProgressScreen.jsx`
+- Wrapped in `<TabScreenWrapper tabIndex={3}>` ← updated from 2 to 3 (Chat tab added at index 2)
 - ScrollView `contentContainerStyle` uses dynamic `paddingBottom: 60 + insets.bottom`
+- Uses `AchievementIcon` SVG component for achievement badges
+- Pain trend chart via `victory-native`, adherence dot grid via `react-native-svg`
 - Heading: `fonts.heading.regular` + lineHeight
 
 #### `ProfileScreen.jsx`
-- Accepts `{ navigation }` prop (even though not navigating away currently)
-- Menu rows now have `onPress` handlers via `handleComingSoon()` → `Alert.alert('Coming soon', '', [{ text: 'OK' }])`
+- Wrapped in `<TabScreenWrapper tabIndex={4}>` ← updated from 3 to 4 (Chat tab added at index 2)
+- Accepts `{ navigation }` prop
+- Menu rows have `onPress` handlers via `handleComingSoon()` → `Alert.alert('Coming soon', '', [{ text: 'OK' }])`
 - ScrollView uses dynamic `paddingBottom: 60 + insets.bottom`
+
+#### `SessionScreen.jsx`
+- Exercise session player — rep-based and duration-based exercises
+- 5 mock exercises with `sets`, `reps`/`duration` mode
+- Phases: `active` → `rest` → next exercise → `complete`
+- State: `currentIndex`, `currentSet`, `phase`, `restSeconds`, `elapsedSeconds`
+- `handleRepComplete()` — no `repsDone`/`setRepsDone` state (removed); calls `advanceExercise()` or increments set and enters rest
+- Hero card difficulty badge: frosted-pill style `rgba(255,255,255,0.25)` on teal background
+- Shows session summary on complete with stats
 
 ---
 
@@ -270,6 +441,16 @@ var insets = useSafeAreaInsets();
 ```
 
 Screens already updated: `HomeScreen`, `ProgressScreen`, `ProfileScreen`.
+
+### Composer / FlatList screens (non-ScrollView)
+
+For screens that have a **FlatList + bottom composer** (e.g. `ChatRoomScreen`):
+- **Do NOT** use `paddingBottom` on the FlatList's `contentContainerStyle` for the tab bar
+- The tab bar is **hidden** when inside ChatRoomScreen (see `MainNavigator.jsx` `isTabBarHidden`),
+  so the composer only needs `paddingBottom: insets.bottom > 0 ? insets.bottom : 8`
+- Give the FlatList `style={styles.flex}` so it fills available space without pushing the composer off-screen
+- Composer must be rendered **outside** any loading ternary to guarantee it is always present
+- **`KeyboardAvoidingView` removed** — `keyboardVerticalOffset` approach caused a gap with custom header; replaced with manual `Keyboard.addListener` + `marginBottom: keyboardHeight` on composer (`keyboardWillShow` / `keyboardWillHide`)
 
 ---
 
@@ -324,7 +505,17 @@ App renders `null` until fonts are loaded (or error). SplashScreen held via `exp
 | Profile menu rows (Personal Info, Notifications, Settings, Help) | `Alert.alert('Coming soon')` |
 | Clerk auth integration | Stub `ClerkAuthScreen` shows "Login coming soon" |
 | Session screen (exercise player) | ✅ Built — `SessionScreen.jsx`, 5 mock exercises, rep + duration modes |
+| Chat feature | ✅ Built — `MessagesScreen`, `ChatRoomScreen`, 6 chat components, `chatService` mock |
+| Composer bar | ✅ Inlined in `ChatRoomScreen` — always visible, paddingBottom = `insets.bottom` (tab bar hidden via `isTabBarHidden` in MainNavigator) |
+| Tab bar overlap fix | ✅ `MainNavigator` hides the entire tab bar (incl. `CenterTabButton`) when focused route inside MessagesStack is `CHAT_ROOM` — uses `getFocusedRouteNameFromRoute` |
+| Keyboard gap fix | ✅ **Replaced `KeyboardAvoidingView`** — now uses `Keyboard.addListener('keyboardWillShow/Hide')` + `marginBottom: keyboardHeight` on composer View. Fires earlier than `keyboardDidShow`, eliminates the gap precisely. |
+| Back button fix | ✅ `navigation.goBack()` on `Pressable` with `hitSlop={{ top:12,bottom:12,left:12,right:12 }}` for reliable tap target |
+| Attachment sheet | ✅ `AttachmentSheet.jsx` (`src/components/chat/`) — Modal, spring slide-up, backdrop tap-to-dismiss, 6-option grid. Paperclip icon in composer opens it. |
+| Swipe-to-dismiss keyboard | ✅ `PanResponder` on `composerOuter` (dy>8, |dy|>|dx|×1.5 to capture, dy>20 to dismiss). FlatList `onScrollBeginDrag` also calls `Keyboard.dismiss()`. |
 | Real therapy session data | All data is mock from `PatientContext` / hardcoded in SessionScreen |
+| Real therapist data | Mock list in `BookTherapistScreen` |
+| Real chat API | `chatService.js` mock-first — swap implementations when backend is ready |
+| Video call from chat header | Placeholder `onPress: () => {}` in ChatRoomScreen |
 
 ---
 
@@ -337,6 +528,10 @@ App renders `null` until fonts are loaded (or error). SplashScreen held via `exp
 - [ ] All color values come from `colors` import (no raw hex)
 - [ ] All font sizes/families come from `fonts` import
 - [ ] All route strings come from `PATIENT_ROUTES` import
-- [ ] Every screen with ScrollView inside a tab has `paddingBottom: 60 + insets.bottom`
+- [ ] Every screen with ScrollView/FlatList inside a tab has `paddingBottom: 60 + insets.bottom`
 - [ ] New stack navigators use `@react-navigation/stack` (not `native-stack`)
 - [ ] `GestureHandlerRootView` and `SafeAreaProvider` are the outermost wrappers in `App.jsx`
+- [ ] All 5 tab root screens are wrapped in `<TabScreenWrapper tabIndex={N}>`
+  - Home=0, Book=1, **Messages=2** (NEW), Progress=3, Profile=4
+- [ ] New tab root screens have `gestureEnabled: false` in their stack's `screenOptions`
+- [ ] No react-native-keyboard-controller, no useAnimatedKeyboard, no reanimated

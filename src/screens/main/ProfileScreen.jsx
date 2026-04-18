@@ -61,7 +61,7 @@ export default function ProfileScreen({ navigation }) {
   }
 
   return (
-    <TabScreenWrapper tabIndex={3}>
+    <TabScreenWrapper tabIndex={4}>
       <SafeAreaView style={styles.safe}>
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 60 + insets.bottom }]}

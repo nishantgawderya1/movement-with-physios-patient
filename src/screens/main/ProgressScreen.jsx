@@ -67,7 +67,7 @@ var GRID_SVG_HEIGHT = (DOT_ROWS - 1) * DOT_SPACING_Y + DOT_R * 2 + 4;
 export default function ProgressScreen() {
   var insets = useSafeAreaInsets();
   return (
-    <TabScreenWrapper tabIndex={2}>
+    <TabScreenWrapper tabIndex={3}>
       <SafeAreaView style={styles.safe}>
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 60 + insets.bottom }]}
