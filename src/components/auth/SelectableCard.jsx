@@ -42,6 +42,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     padding: 16,
+    minHeight: 90,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: COLUMN_GAP,

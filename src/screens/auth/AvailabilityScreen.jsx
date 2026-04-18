@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useOnboarding } from '../../context/OnboardingContext';
 import OnboardingShell from '../../components/auth/OnboardingShell';
-import SelectablePill from '../../components/auth/SelectablePill';
 import { submitOnboarding } from '../../services/auth/mockOnboardingService';
 import { colors } from '../../constants/colors';
 import { fonts } from '../../constants/fonts';
 import { PATIENT_ROUTES } from '../../constants/routes';
+import { StyleSheet } from 'react-native';
 
 var SLOT_OPTIONS = [
   'Weekday Mornings',
@@ -17,8 +18,17 @@ var SLOT_OPTIONS = [
   'Weekend Evenings',
 ];
 
+var SLOT_ICONS = [
+  'sunny-outline',
+  'partly-sunny-outline',
+  'moon-outline',
+  'sunny-outline',
+  'partly-sunny-outline',
+  'moon-outline',
+];
+
 /**
- * Step 7 — Select availability slots (multi-select, 2-column flex-wrap).
+ * Step 7 — Select availability slots (multi-select, 2-column icon cards).
  * On Continue: submits full onboarding payload to mock service.
  * Success → replace to OnboardingComplete.
  * Failure → show inline error.
@@ -42,7 +52,6 @@ export default function AvailabilityScreen({ navigation }) {
       }
       return prev.concat(slot);
     });
-    // clear any prior error when user changes selection
     if (submitError) {
       setSubmitError(null);
     }
@@ -84,16 +93,54 @@ export default function AvailabilityScreen({ navigation }) {
       isContinueDisabled={selectedSlots.length === 0 || isSubmitting}
       continueLabel={isSubmitting ? 'Submitting…' : 'Finish'}
     >
-      <View style={styles.grid}>
-        {SLOT_OPTIONS.map(function (slot) {
+      <View style={{
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        alignContent: 'center',
+      }}>
+        {SLOT_OPTIONS.map(function (slot, index) {
+          var isSelected = selectedSlots.includes(slot);
           return (
-            <View key={slot} style={styles.pillWrapper}>
-              <SelectablePill
-                label={slot}
-                isSelected={selectedSlots.includes(slot)}
-                onPress={function () { toggleSlot(slot); }}
-              />
-            </View>
+            <TouchableOpacity
+              key={slot}
+              onPress={function () { toggleSlot(slot); }}
+              style={{
+                width: '47%',
+                padding: 18,
+                borderRadius: 16,
+                borderWidth: isSelected ? 2 : 1,
+                borderColor: isSelected ? colors.primary : colors.cardBorder,
+                backgroundColor: isSelected ? '#E0F7F2' : colors.white,
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 99,
+                backgroundColor: isSelected ? colors.primary : colors.inputBg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Ionicons
+                  name={SLOT_ICONS[index]}
+                  size={24}
+                  color={isSelected ? colors.white : colors.textLight}
+                />
+              </View>
+              <Text style={{
+                fontSize: fonts.sm,
+                fontFamily: isSelected ? fonts.heading.semibold : fonts.body.medium,
+                color: isSelected ? colors.primary : colors.textDark,
+                textAlign: 'center',
+                lineHeight: 18,
+              }}>
+                {slot}
+              </Text>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -114,15 +161,6 @@ export default function AvailabilityScreen({ navigation }) {
 }
 
 var styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 16,
-  },
-  pillWrapper: {
-    width: '48%',
-  },
   spinner: {
     marginTop: 12,
   },

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
-import { fonts, fontFamilies } from '../../constants/fonts';
+import { fonts } from '../../constants/fonts';
 import { PATIENT_ROUTES } from '../../constants/routes';
 
 /**

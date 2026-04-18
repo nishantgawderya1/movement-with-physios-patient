@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
-import { fonts, fontFamilies } from '../../constants/fonts';
+import { fonts } from '../../constants/fonts';
 import { PATIENT_ROUTES } from '../../constants/routes';
 
 const FEATURES = [
@@ -107,8 +107,9 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   heading: {
-    fontFamily: fontFamilies.instrumentSerif,
+    fontFamily: fonts.heading.regular,
     fontSize: fonts.xxxl,
+    lineHeight: fonts.xxxl * 1.35,
     color: colors.textDark,
     textAlign: 'center',
     marginBottom: 12,
@@ -156,28 +157,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   primaryBtn: {
-    backgroundColor: colors.buttonPrimary,
-    borderRadius: 30,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   primaryBtnText: {
-    color: colors.buttonPrimaryText,
+    color: colors.textOnPrimary,
     fontSize: fonts.md,
     fontWeight: fonts.semibold,
   },
   outlineBtn: {
-    borderRadius: 30,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 12,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: colors.buttonOutlineBorder,
+    borderColor: colors.primary,
   },
   outlineBtnText: {
-    color: colors.buttonOutlineText,
+    color: colors.primary,
     fontSize: fonts.md,
     fontWeight: fonts.semibold,
   },

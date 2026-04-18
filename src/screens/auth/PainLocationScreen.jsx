@@ -87,5 +87,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 8,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
 });

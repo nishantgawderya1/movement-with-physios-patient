@@ -1,239 +1,342 @@
-# MWP Patient — Claude Code Execution Plan
+# MWP Patient — Claude Code Reference
 
-This document is an **ordered implementation checklist** for Claude Code.
-Work through phases sequentially. Each phase must be complete and compiling before starting the next.
-
-## Stack Reference
-- Expo 54 / React Native 0.81.5 / React 19
-- JavaScript only (NO TypeScript, NO .ts/.tsx files)
-- StyleSheet.create() ONLY — no inline styles
-- Colors from `src/constants/colors.js` (use the `colors` named export)
-- Font sizes from `src/constants/fonts.js` (use `fonts` named export)
-- Route names from `src/constants/routes.js` (use `PATIENT_ROUTES`)
-- No linter / formatter / test runner
+This document is the **single source of truth** for the current state of the MWP Patient app.
+It captures every decision, convention, and completed change made by Claude Code.
+Update this file after every session.
 
 ---
 
-## Phase 1 — Install Dependencies (DONE — scaffold created)
+## Stack
 
-Files already created:
-- [x] `package.json`
-- [x] `app.json`
-- [x] `App.jsx`
-- [x] `src/constants/colors.js`
-- [x] `src/constants/fonts.js`
-- [x] `src/constants/routes.js`
-- [x] `src/navigation/AppNavigator.jsx`
-
-**Your first task:** Run `npm install` in the repo root.
-
----
-
-## Phase 2 — Auth Navigator (Stack)
-
-Create `src/navigation/AuthNavigator.jsx`:
-- Use `createNativeStackNavigator` from `@react-navigation/native-stack`
-- Screens (in order): SPLASH → LOGIN → CLERK_AUTH → PERSONAL_INFO → MEDICAL_HISTORY → ONBOARDING_COMPLETE
-- Each screen points to a placeholder screen component (see Phase 3)
-- No header on any screen (`headerShown: false`)
-
-Update `src/navigation/AppNavigator.jsx`:
-- Import `AuthNavigator` from `./AuthNavigator`
-- Replace the inline placeholder `AuthNavigator` component with the imported one
-- Keep the TODO comment pointing to `MainNavigator` swap
-
----
-
-## Phase 3 — Placeholder Screens for Auth Flow
-
-Create one file per screen. Each screen is a simple `View` with a centered `Text` label.
-Folder: `src/screens/auth/`
-
-Files to create:
-- `SplashScreen.jsx` — shows "Splash" label, white background
-- `LoginScreen.jsx` — shows "Login" label
-- `ClerkAuthScreen.jsx` — shows "Clerk Auth" label
-- `PersonalInfoScreen.jsx` — shows "Personal Info" label
-- `MedicalHistoryScreen.jsx` — shows "Medical History" label
-- `OnboardingCompleteScreen.jsx` — shows "Onboarding Complete" label
-
-Each file pattern:
-```jsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../../constants/colors';
-import { fonts } from '../../constants/fonts';
-
-export default function ExampleScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Screen Name</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  label: {
-    fontSize: fonts.xl,
-    color: colors.textDark,
-  },
-});
-```
-
----
-
-## Phase 4 — Bottom Tab Navigator (Main App)
-
-Create `src/navigation/MainNavigator.jsx`:
-- Use `createBottomTabNavigator` from `@react-navigation/bottom-tabs`
-- 5 tabs: Home, Appointments, Exercises, Messages, Progress
-- Each tab renders a placeholder stack navigator (see Phase 5)
-- Tab icons from `@expo/vector-icons` (Ionicons)
-  - Home: `home-outline` / `home`
-  - Appointments: `calendar-outline` / `calendar`
-  - Exercises: `barbell-outline` / `barbell`
-  - Messages: `chatbubble-outline` / `chatbubble`
-  - Progress: `trending-up-outline` / `trending-up`
-- Active tint: `colors.primary` (`#1A5C4A`)
-- Inactive tint: `colors.textLight`
-- Tab bar background: `colors.white`
-- No label shown (or short label in ALL CAPS)
-- `headerShown: false` on the tab navigator
-
----
-
-## Phase 5 — Per-Tab Stack Navigators
-
-Create one stack navigator per tab. Each stack uses `createNativeStackNavigator`.
-All header shown = false at stack level.
-
-| File | Root Screen | Additional Screens |
-|---|---|---|
-| `src/navigation/stacks/HomeStack.jsx` | HOME | — |
-| `src/navigation/stacks/AppointmentsStack.jsx` | APPOINTMENTS | BOOK_APPOINTMENT, APPOINTMENT_DETAIL, RESCHEDULE |
-| `src/navigation/stacks/ExercisesStack.jsx` | EXERCISES | EXERCISE_DETAIL, EXERCISE_COMPLETE |
-| `src/navigation/stacks/MessagesStack.jsx` | MESSAGES | CHAT |
-| `src/navigation/stacks/ProgressStack.jsx` | PROGRESS | LOG_PAIN |
-
-All screens are placeholder components in `src/screens/main/` (same pattern as Phase 3).
-
----
-
-## Phase 6 — Shared UI Components
-
-Create `src/components/` with these reusable components:
-
-### `PrimaryButton.jsx`
-Props: `{ title, onPress, disabled, loading }`
-- Full-width, 48px height, rounded corners (borderRadius 12)
-- Background: `colors.buttonPrimary`, text: `colors.buttonPrimaryText`
-- Font: `fonts.md`, weight `fonts.semibold`
-- Shows `ActivityIndicator` when `loading=true`
-- Reduced opacity when `disabled=true`
-
-### `OutlineButton.jsx`
-Props: `{ title, onPress, disabled }`
-- Full-width, 48px height, borderRadius 12
-- Border: 1.5px `colors.buttonOutlineBorder`
-- Text: `colors.buttonOutlineText`
-
-### `TextInput.jsx` (custom)
-Props: `{ label, placeholder, value, onChangeText, secureTextEntry, error, keyboardType }`
-- Label above input in `fonts.sm`, `colors.textMedium`
-- Input box with border `colors.inputBorder`, background `colors.inputBg`, borderRadius 10
-- Error text below in `colors.error`, `fonts.xs`
-- Placeholder color: `colors.placeholder`
-
-### `ScreenHeader.jsx`
-Props: `{ title, subtitle, showBack, onBack }`
-- Renders title in InstrumentSerif font (`fontFamilies.instrumentSerif`)
-- Optional subtitle in `fonts.sm`, `colors.subtext`
-- Optional back chevron (Ionicons `chevron-back`) that calls `onBack`
-
-### `Card.jsx`
-Props: `{ children, style }`
-- White background, borderRadius 16, shadow (iOS shadow + Android elevation 3)
-- Border: 1px `colors.cardBorder`
-
----
-
-## Phase 7 — Profile & Settings Screens
-
-These screens are accessible from a Profile icon in the tab bar or via a stack from any tab.
-
-Create `src/navigation/stacks/ProfileStack.jsx`:
-- Screens: PROFILE → EDIT_PROFILE, SETTINGS
-
-Add Profile tab to `MainNavigator.jsx` (6th tab or via modal):
-- Icon: `person-outline` / `person`
-
-Create placeholder screens in `src/screens/profile/`:
-- `ProfileScreen.jsx`
-- `EditProfileScreen.jsx`
-- `SettingsScreen.jsx`
-
----
-
-## Phase 8 — Invoice & Video Call Screens (Modal)
-
-These screens are launched as modals from other screens (not in the tab bar).
-
-In `MainNavigator.jsx`, wrap everything in a root `createNativeStackNavigator`:
-- presentation: `'modal'` for: INVOICES, INVOICE_DETAIL, VIDEO_CALL
-
-Create screens:
-- `src/screens/main/InvoicesScreen.jsx`
-- `src/screens/main/InvoiceDetailScreen.jsx`
-- `src/screens/main/VideoCallScreen.jsx`
-
----
-
-## Phase 9 — Wire Up AppNavigator Auth → Main Switch
-
-In `AppNavigator.jsx`, add logic to switch between `AuthNavigator` and `MainNavigator`:
-- Use a simple boolean state for now: `const [isAuthenticated, setIsAuthenticated] = useState(false)`
-- When `isAuthenticated` is false → render `<AuthNavigator />`
-- When `isAuthenticated` is true → render `<MainNavigator />`
-- Pass a callback `onAuthComplete={() => setIsAuthenticated(true)}` through navigation params or context
-
-> TODO: Replace this state toggle with a real auth context / Clerk session in a later phase.
+| Item | Version |
+|---|---|
+| Expo SDK | 54 |
+| React Native | 0.81.5 |
+| React | 19.1.0 |
+| Language | JavaScript only — `.jsx` / `.js`. NO TypeScript, NO `.ts`/`.tsx` |
+| Navigation | `@react-navigation/stack` v7 (NOT native-stack — needed for TransitionPresets) |
+| Tab navigation | `@react-navigation/bottom-tabs` v7 |
+| Fonts | `@expo-google-fonts/lora` + `@expo-google-fonts/nunito` |
+| Icons | `@expo/vector-icons` (Ionicons) |
+| Haptics | `expo-haptics` |
+| Gestures | `react-native-gesture-handler` ~2.28.0 |
+| Safe Area | `react-native-safe-area-context` ~5.6.0 |
 
 ---
 
 ## Coding Rules (ENFORCE FOR EVERY FILE)
 
 1. **No TypeScript.** Files are `.jsx` or `.js` only. No `interface`, `type`, `: string`, etc.
-2. **StyleSheet.create() only.** Never write `style={{ ... }}` inline. Define styles at the bottom of every file.
-3. **Use constants.** Always import from `colors.js`, `fonts.js`, `routes.js`. No hex codes or raw numbers in component files.
-4. **No libraries not in package.json.** If you think you need one, stop and ask first.
+2. **StyleSheet.create() only.** Never write `style={{ ... }}` inline. Exception: dynamic values that depend on runtime hooks (e.g. `insets.bottom`) can be merged with `[styles.x, { paddingBottom: 60 + insets.bottom }]`.
+3. **Use constants.** Always import from `colors.js`, `fonts.js`, `routes.js`. No raw hex codes or magic numbers in component files.
+4. **No libraries not in package.json.** Stop and ask first.
 5. **JSDoc comments** on every exported component describing props.
 6. **One component per file.** No multi-export component files.
-7. **Folder structure:**
+7. **`var` declarations** are preferred over `const`/`let` in component files (existing code style).
+8. **Folder structure:**
    ```
    src/
-     components/     ← shared UI
-     constants/      ← colors, fonts, routes
-     navigation/     ← AppNavigator, AuthNavigator, MainNavigator, stacks/
+     components/
+       booking/        ← TherapistCard
+       navigation/     ← AnimatedTabBar
+       ui/             ← PrimaryButton, OutlineButton
+     constants/        ← colors.js, fonts.js, routes.js
+     context/          ← OnboardingContext, PatientContext
+     navigation/
+       stacks/         ← BookStack
+       AppNavigator.jsx
+       AuthNavigator.jsx
+       MainNavigator.jsx
+       RootNavigator.jsx
      screens/
-       auth/         ← onboarding screens
-       main/         ← home, appointments, exercises, messages, progress, invoices, video
-       profile/      ← profile, edit-profile, settings
+       auth/           ← LoginScreen, onboarding steps, OnboardingCompleteScreen
+       main/           ← HomeScreen, Book*, Progress, Profile
+       splash/         ← SplashScreen
    ```
 
 ---
 
-## Verification Checklist (run after each phase)
+## Constants Reference
+
+### `src/constants/colors.js`
+```js
+colors.background      // #FFFFFF
+colors.surface         // #F4F6F9
+colors.primary         // #00B894  (teal)
+colors.primaryLight    // #E0F7F2  (soft teal tint)
+colors.primaryDark     // #007A5E
+colors.textDark        // #1A1A2E
+colors.textMedium      // #4A5568
+colors.textLight       // #A0AEC0
+colors.textOnPrimary   // #FFFFFF
+colors.border          // #E2E8F0
+colors.divider         // #EDF2F7
+colors.danger          // #E53E3E
+colors.planCardStart   // #00B894  (gradient start)
+colors.planCardEnd     // #007A5E  (gradient end)
+```
+
+### `src/constants/fonts.js`
+```js
+// Heading font — Lora (serif)
+fonts.heading.regular  → 'Lora_400Regular'
+fonts.heading.italic   → 'Lora_400Regular_Italic'
+fonts.heading.semibold → 'Lora_600SemiBold'
+
+// Body font — Nunito (rounded sans-serif)
+fonts.body.regular     → 'Nunito_400Regular'
+fonts.body.medium      → 'Nunito_500Medium'
+fonts.body.semibold    → 'Nunito_600SemiBold'
+
+// Size scale (also top-level for backward compat)
+fonts.xs  = 11   fonts.sm  = 13   fonts.md  = 15
+fonts.lg  = 17   fonts.xl  = 20   fonts.xxl = 26   fonts.xxxl = 32
+
+// Weight shorthands
+fonts.regular = '400'  fonts.medium = '500'  fonts.semibold = '600'
+fonts.bold    = '700'  fonts.extrabold = '800'
+```
+
+**Typography rules:**
+- `fonts.heading.regular` — screen titles, plan card titles, section headings, `lineHeight = fontSize * 1.35`
+- `fonts.body.*` — all other text: labels, buttons, pills, tab labels, body copy
+- `fonts.body.semibold` + `letterSpacing: 0.3` — button labels (PrimaryButton, OutlineButton)
+- `fonts.body.medium` + `fontSize: 11` — tab bar labels
+
+### `src/constants/routes.js` — Key values
+```js
+PATIENT_ROUTES.HOME              = 'HOME'
+PATIENT_ROUTES.SESSION           = 'SESSION'   // ← exercise player screen
+PATIENT_ROUTES.BOOK_APPOINTMENT  = 'BOOK_APPOINTMENT'
+PATIENT_ROUTES.BOOK_THERAPIST    = 'BOOK_THERAPIST'
+PATIENT_ROUTES.SLOT_SELECTION    = 'SLOT_SELECTION'
+PATIENT_ROUTES.BOOKING_CONFIRMED = 'BOOKING_CONFIRMED'
+PATIENT_ROUTES.PROGRESS          = 'PROGRESS'
+PATIENT_ROUTES.PROFILE           = 'PROFILE'
+// Auth
+PATIENT_ROUTES.SPLASH            = 'SPLASH'
+PATIENT_ROUTES.LOGIN             = 'LOGIN'
+PATIENT_ROUTES.PERSONAL_INFO     = 'PERSONAL_INFO'
+// ... (PAIN_LOCATION, PAIN_SEVERITY, PAIN_DURATION, TREATMENT_HISTORY,
+//      RECOVERY_GOALS, AVAILABILITY, ONBOARDING_COMPLETE)
+```
+
+---
+
+## Navigation Architecture
+
+```
+App.jsx
+└── GestureHandlerRootView         ← required by @react-navigation/stack for swipe-back
+    └── SafeAreaProvider           ← required for useSafeAreaInsets everywhere
+        └── AppNavigator.jsx
+            ├── BackHandler (Android hardware back)
+            └── NavigationContainer (ref attached)
+                └── PatientProvider
+                    └── RootNavigator.jsx
+                        ├── isOnboardingComplete=false → AuthNavigator.jsx
+                        └── isOnboardingComplete=true  → MainNavigator.jsx
+```
+
+### AuthNavigator — `src/navigation/AuthNavigator.jsx`
+- Uses `createStackNavigator` from `@react-navigation/stack`
+- `TransitionPresets.SlideFromRightIOS` with spring config:
+  `{ stiffness: 1000, damping: 500, mass: 3, overshootClamping: true }`
+- `gestureEnabled: true`, `gestureDirection: 'horizontal'`
+- Wrapped in `<OnboardingProvider>`
+- Screens: Splash → Login → ClerkAuth → PersonalInfo → PainLocation → PainSeverity → PainDuration → TreatmentHistory → RecoveryGoals → Availability → OnboardingComplete
+
+### MainNavigator — `src/navigation/MainNavigator.jsx`
+- Uses `createBottomTabNavigator`
+- `tabBar` prop → renders `<AnimatedTabBar>` (custom component)
+- `lazy: false` — preloads all 4 tabs for instant switching
+- `headerShown: false` on all screens
+- 4 tabs: HOME → BookStack → PROGRESS → PROFILE
+- HOME tab uses **HomeStack** (not bare HomeScreen) so SESSION can be pushed inside it
+
+### HomeStack — `src/navigation/stacks/HomeStack.jsx`
+- Uses `createStackNavigator` (NOT native-stack)
+- Same `TransitionPresets.SlideFromRightIOS` spring config as BookStack
+- Screens: Home → Session
+
+### BookStack — `src/navigation/stacks/BookStack.jsx`
+- Uses `createStackNavigator` (NOT native-stack)
+- Same `TransitionPresets.SlideFromRightIOS` spring config as AuthNavigator
+- Screens: BookTherapist → SlotSelection → BookingConfirmed
+
+### AnimatedTabBar — `src/components/navigation/AnimatedTabBar.jsx`
+- Custom tab bar component, receives `{ state, descriptors, navigation }` from React Navigation
+- **Teal pill indicator**: `width: 32, height: 3, borderRadius: 99, backgroundColor: colors.primary`
+- **Position**: `position: 'absolute', top: 0`, centered via `marginLeft: (tabWidth - 32) / 2`
+- **Animation**: `Animated.spring` on `pillX` value — `{ stiffness: 300, damping: 30, useNativeDriver: true }`
+- **Haptics**: `Haptics.impactAsync(ImpactFeedbackStyle.Light)` on every tab press
+- **Safe area**: `useSafeAreaInsets()` — height = `60 + insets.bottom`
+- Uses `navigation.emit({ type: 'tabPress' })` for correct React Navigation event handling
+
+---
+
+## Button Components
+
+### `src/components/ui/PrimaryButton.jsx`
+```
+backgroundColor: colors.primary   borderRadius: 12   height: 52
+label: fonts.body.semibold, color: colors.textOnPrimary, fontSize: 15, letterSpacing: 0.3
+disabled: backgroundColor: colors.primaryLight, opacity: 0.7
+```
+
+### `src/components/ui/OutlineButton.jsx`
+```
+backgroundColor: colors.primaryLight   borderWidth: 1.5   borderColor: colors.primary
+borderRadius: 12   height: 52
+label: fonts.body.semibold, color: colors.primary, fontSize: 15, letterSpacing: 0.3
+```
+
+---
+
+## Screen Inventory & Navigation Wiring
+
+### Auth Screens (`src/screens/auth/`)
+All wrapped in `OnboardingProvider` via `AuthNavigator`.
+
+| Screen | Notes |
+|---|---|
+| `SplashScreen.jsx` | Logo + auto-advance |
+| `LoginScreen.jsx` | Heading: `fonts.heading.regular` |
+| `PersonalInfoScreen.jsx` | — |
+| `PainLocationScreen.jsx` | — |
+| `PainSeverityScreen.jsx` | — |
+| `PainDurationScreen.jsx` | — |
+| `TreatmentHistoryScreen.jsx` | — |
+| `RecoveryGoalsScreen.jsx` | — |
+| `AvailabilityScreen.jsx` | — |
+| `OnboardingCompleteScreen.jsx` | Heading: `fonts.heading.regular` |
+
+`OnboardingShell.jsx` (`src/components/auth/`) — step progress wrapper used by onboarding screens.
+
+### Main Screens (`src/screens/main/`)
+
+#### `HomeScreen.jsx`
+- Accepts `{ navigation }` prop
+- Imports `PATIENT_ROUTES` from routes
+- Interactive elements wired:
+  - 🔔 Bell icon → `onPress: () => {}` (TODO stub)
+  - 👤 Avatar → `navigation.navigate(PATIENT_ROUTES.PROFILE)`
+  - **START SESSION** → `navigation.navigate(PATIENT_ROUTES.SESSION)` ← updated
+  - **View All** (Pain Trend) → `navigation.navigate(PATIENT_ROUTES.PROGRESS)`
+  - **Book Session** quick action → `navigation.navigate(BOOK_APPOINTMENT, { screen: BOOK_THERAPIST })`
+  - **View Progress** quick action → `navigation.navigate(PATIENT_ROUTES.PROGRESS)`
+- ScrollView `contentContainerStyle` uses `[styles.scrollContent, { paddingBottom: 60 + insets.bottom }]`
+- Headings: `fonts.heading.regular` + `lineHeight: fontSize * 1.35`
+
+#### `BookTherapistScreen.jsx`
+- Accepts `{ navigation }` prop
+- TherapistCard onPress → `navigation.navigate(PATIENT_ROUTES.SLOT_SELECTION, { therapist })`
+- Back button → `navigation.goBack()`
+
+#### `SlotSelectionScreen.jsx`
+- Accepts `{ navigation, route }` prop
+- Reads `therapist` from `route.params`
+- Confirm Booking → `navigation.navigate(PATIENT_ROUTES.BOOKING_CONFIRMED, { therapist, slot, date })`
+- Back button → `navigation.goBack()`
+
+#### `BookingConfirmedScreen.jsx`
+- Accepts `{ navigation, route }` prop
+- Reads `therapist`, `slot`, `date` from `route.params`
+- Back to Home → `navigation.navigate(PATIENT_ROUTES.HOME)` (navigate, not goBack)
+- Animated scale-in checkmark on mount
+
+#### `ProgressScreen.jsx`
+- ScrollView `contentContainerStyle` uses dynamic `paddingBottom: 60 + insets.bottom`
+- Heading: `fonts.heading.regular` + lineHeight
+
+#### `ProfileScreen.jsx`
+- Accepts `{ navigation }` prop (even though not navigating away currently)
+- Menu rows now have `onPress` handlers via `handleComingSoon()` → `Alert.alert('Coming soon', '', [{ text: 'OK' }])`
+- ScrollView uses dynamic `paddingBottom: 60 + insets.bottom`
+
+---
+
+## Tab Bar — Safe Area Fix
+
+Tab bar is `position: 'absolute'` inside `AnimatedTabBar`. This means **all tab screens with ScrollView must add paddingBottom** to prevent content hiding behind the tab bar.
+
+**Pattern (in every main screen with ScrollView):**
+```jsx
+var insets = useSafeAreaInsets();
+// ...
+<ScrollView
+  contentContainerStyle={[styles.scrollContent, { paddingBottom: 60 + insets.bottom }]}
+>
+```
+
+Screens already updated: `HomeScreen`, `ProgressScreen`, `ProfileScreen`.
+
+---
+
+## Cross-Tab Navigation Pattern
+
+When navigating from one tab into a screen nested inside another tab's stack:
+```js
+// CORRECT — switches to BOOK_APPOINTMENT tab then pushes BOOK_THERAPIST
+navigation.navigate(PATIENT_ROUTES.BOOK_APPOINTMENT, {
+  screen: PATIENT_ROUTES.BOOK_THERAPIST,
+});
+
+// WRONG — won't find the screen if called from a different tab
+navigation.navigate(PATIENT_ROUTES.BOOK_THERAPIST);
+```
+
+---
+
+## Android BackHandler
+
+Implemented in `AppNavigator.jsx`:
+```js
+var sub = BackHandler.addEventListener('hardwareBackPress', function () {
+  if (navigationRef.current?.canGoBack()) {
+    navigationRef.current.goBack();
+    return true;   // consumed
+  }
+  return false;   // let system handle (exit/minimise)
+});
+return () => sub.remove();  // cleanup on unmount
+```
+
+---
+
+## Font Loading — `App.jsx`
+
+```js
+// Loaded at startup via useFonts()
+Lora_400Regular, Lora_400Regular_Italic, Lora_600SemiBold,
+Nunito_400Regular, Nunito_500Medium, Nunito_600SemiBold
+```
+
+App renders `null` until fonts are loaded (or error). SplashScreen held via `expo-splash-screen`.
+
+---
+
+## Known Stubs / TODO
+
+| Item | Status |
+|---|---|
+| Notifications screen | No-op `onPress: () => {}` in HomeScreen bell icon |
+| Profile menu rows (Personal Info, Notifications, Settings, Help) | `Alert.alert('Coming soon')` |
+| Clerk auth integration | Stub `ClerkAuthScreen` shows "Login coming soon" |
+| Session screen (exercise player) | ✅ Built — `SessionScreen.jsx`, 5 mock exercises, rep + duration modes |
+| Real therapy session data | All data is mock from `PatientContext` / hardcoded in SessionScreen |
+
+---
+
+## Verification Checklist (run after each session)
 
 - [ ] `npx expo start` launches without crashing
 - [ ] No red error screen on device/simulator
 - [ ] No TypeScript syntax in any `.js` / `.jsx` file
-- [ ] No inline styles — all styles in `StyleSheet.create()`
-- [ ] All color values come from `colors` import
-- [ ] All font sizes come from `fonts` import
+- [ ] No inline styles — use `StyleSheet.create()` + array merge for dynamic values
+- [ ] All color values come from `colors` import (no raw hex)
+- [ ] All font sizes/families come from `fonts` import
 - [ ] All route strings come from `PATIENT_ROUTES` import
+- [ ] Every screen with ScrollView inside a tab has `paddingBottom: 60 + insets.bottom`
+- [ ] New stack navigators use `@react-navigation/stack` (not `native-stack`)
+- [ ] `GestureHandlerRootView` and `SafeAreaProvider` are the outermost wrappers in `App.jsx`

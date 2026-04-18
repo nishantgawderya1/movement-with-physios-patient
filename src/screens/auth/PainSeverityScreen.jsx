@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Dimensions, StyleSheet } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useOnboarding } from '../../context/OnboardingContext';
 import OnboardingShell from '../../components/auth/OnboardingShell';
 import { colors } from '../../constants/colors';
 import { fonts } from '../../constants/fonts';
 import { PATIENT_ROUTES } from '../../constants/routes';
 
-var SCREEN_WIDTH = Dimensions.get('window').width;
-var HORIZONTAL_PADDING = 48;
-var BUTTON_GAP = 6;
-var BUTTON_SIZE = Math.floor(
-  (SCREEN_WIDTH - HORIZONTAL_PADDING - BUTTON_GAP * 9) / 10
-);
-
 var SEVERITY_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+var PAIN_LABELS = [
+  'No pain', 'Very mild', 'Mild', 'Noticeable', 'Moderate',
+  'Uncomfortable', 'Severe', 'Very severe', 'Intense', 'Unbearable',
+];
 
 /**
  * Step 3 — Rate pain severity on a scale of 1–10 (single select).
@@ -45,72 +43,95 @@ export default function PainSeverityScreen({ navigation }) {
       onContinue={handleContinue}
       isContinueDisabled={selectedSeverity === null}
     >
-      <View style={styles.row}>
-        {SEVERITY_LEVELS.map(function (level) {
-          var isSelected = selectedSeverity === level;
-          return (
-            <Pressable
-              key={level}
-              onPress={function () { setSelectedSeverity(level); }}
-              style={[styles.button, isSelected ? styles.buttonSelected : styles.buttonDefault]}
-              accessibilityRole="button"
-              accessibilityLabel={'Pain level ' + level}
-              accessibilityState={{ selected: isSelected }}
-            >
-              <Text style={[styles.label, isSelected ? styles.labelSelected : styles.labelDefault]}>
-                {level}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <View style={styles.legend}>
-        <Text style={styles.legendText}>1 = No pain</Text>
-        <Text style={styles.legendText}>10 = Worst pain</Text>
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+
+        {/* Large display when selected */}
+        {selectedSeverity !== null && (
+          <View style={{ alignItems: 'center', marginBottom: 32 }}>
+            <Text style={{
+              fontSize: 72,
+              fontFamily: fonts.heading.semibold,
+              color: colors.primary,
+              lineHeight: 78,
+            }}>
+              {selectedSeverity}
+            </Text>
+            <Text style={{
+              fontSize: fonts.sm,
+              color: colors.textMedium,
+              marginTop: 4,
+              fontFamily: fonts.body.medium,
+            }}>
+              {PAIN_LABELS[selectedSeverity - 1]}
+            </Text>
+          </View>
+        )}
+
+        {selectedSeverity === null && (
+          <View style={{ alignItems: 'center', marginBottom: 32 }}>
+            <Text style={{ fontSize: fonts.md, color: colors.textLight, fontFamily: fonts.body.medium }}>
+              Tap a number to rate your pain
+            </Text>
+          </View>
+        )}
+
+        {/* 5 × 2 perfect circle grid */}
+        <View style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 14,
+        }}>
+          {SEVERITY_LEVELS.map(function (level) {
+            var isSelected = selectedSeverity === level;
+            var CIRCLE = 58;
+            return (
+              <Pressable
+                key={level}
+                onPress={function () { setSelectedSeverity(level); }}
+                style={{
+                  width: CIRCLE,
+                  height: CIRCLE,
+                  borderRadius: CIRCLE / 2,
+                  borderWidth: isSelected ? 0 : 1.5,
+                  borderColor: colors.cardBorder,
+                  backgroundColor: isSelected ? colors.primary : colors.white,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: isSelected ? 0 : 0.06,
+                  shadowRadius: 3,
+                  elevation: isSelected ? 0 : 2,
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={'Pain level ' + level}
+                accessibilityState={{ selected: isSelected }}
+              >
+                <Text style={{
+                  fontSize: level === 10 ? fonts.sm : fonts.md,
+                  fontFamily: fonts.heading.semibold,
+                  color: isSelected ? colors.white : colors.textDark,
+                }}>
+                  {level}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Legend */}
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginTop: 20,
+          paddingHorizontal: 4,
+        }}>
+          <Text style={{ fontSize: fonts.xs, color: colors.textLight }}>1 = No pain</Text>
+          <Text style={{ fontSize: fonts.xs, color: colors.textLight }}>10 = Worst pain</Text>
+        </View>
+
       </View>
     </OnboardingShell>
   );
 }
-
-var styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  button: {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonDefault: {
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.white,
-  },
-  buttonSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  label: {
-    fontSize: fonts.sm,
-    fontWeight: fonts.semibold,
-  },
-  labelDefault: {
-    color: colors.textDark,
-  },
-  labelSelected: {
-    color: colors.white,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  legendText: {
-    fontSize: fonts.xs,
-    color: colors.textLight,
-  },
-});

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
+import { TransitionPresets } from '@react-navigation/stack';
 import { OnboardingProvider } from '../context/OnboardingContext';
 import { PATIENT_ROUTES } from '../constants/routes';
 import { colors } from '../constants/colors';
@@ -17,7 +18,22 @@ import RecoveryGoalsScreen from '../screens/auth/RecoveryGoalsScreen';
 import AvailabilityScreen from '../screens/auth/AvailabilityScreen';
 import OnboardingCompleteScreen from '../screens/auth/OnboardingCompleteScreen';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
+
+/**
+ * iOS-style spring transition spec shared across open/close.
+ */
+const SPRING_TRANSITION = {
+  animation: 'spring',
+  config: {
+    stiffness: 1000,
+    damping: 500,
+    mass: 3,
+    overshootClamping: true,
+    restDisplacementThreshold: 0.01,
+    restSpeedThreshold: 0.01,
+  },
+};
 
 /**
  * Placeholder screen for Clerk authentication (stub — not yet implemented).
@@ -32,15 +48,27 @@ function ClerkAuthScreen() {
 
 /**
  * Auth + onboarding navigator.
+ * Uses @react-navigation/stack (not native-stack) for TransitionPresets support.
  * Wraps the full stack in OnboardingProvider so all screens share onboarding state.
- * All screens have headers hidden.
+ *
  * Flow: Splash → Login → PersonalInfo → PainLocation → PainSeverity →
  *        PainDuration → TreatmentHistory → RecoveryGoals → Availability → OnboardingComplete
  */
 export default function AuthNavigator() {
   return (
     <OnboardingProvider>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+          ...TransitionPresets.SlideFromRightIOS,
+          transitionSpec: {
+            open: SPRING_TRANSITION,
+            close: SPRING_TRANSITION,
+          },
+        }}
+      >
         <Stack.Screen name={PATIENT_ROUTES.SPLASH} component={SplashScreen} />
         <Stack.Screen name={PATIENT_ROUTES.LOGIN} component={LoginScreen} />
         <Stack.Screen name={PATIENT_ROUTES.CLERK_AUTH} component={ClerkAuthScreen} />

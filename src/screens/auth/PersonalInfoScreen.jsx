@@ -72,6 +72,9 @@ export default function PersonalInfoScreen({ navigation }) {
 const styles = StyleSheet.create({
   fieldGroup: {
     width: '100%',
+    flex: 1,
+    justifyContent: 'center',
+    paddingBottom: 40,
   },
   input: {
     height: 52,

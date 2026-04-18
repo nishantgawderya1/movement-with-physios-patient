@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
-import { fonts, fontFamilies } from '../../constants/fonts';
+import { fonts } from '../../constants/fonts';
 
 const TOTAL_STEPS = 7;
 
@@ -67,7 +67,9 @@ export default function OnboardingShell({
         >
           <Text style={styles.heading}>{heading}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
-          {children}
+          <View style={styles.childrenWrapper}>
+            {children}
+          </View>
         </ScrollView>
 
         {/* Footer — outside ScrollView so it stays fixed */}
@@ -118,12 +120,17 @@ const styles = StyleSheet.create({
     fontWeight: fonts.medium,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingBottom: 24,
   },
+  childrenWrapper: {
+    flex: 1,
+  },
   heading: {
-    fontFamily: fontFamilies.instrumentSerif,
+    fontFamily: fonts.heading.regular,
     fontSize: fonts.xxl,
+    lineHeight: fonts.xxl * 1.35,
     color: colors.textDark,
     marginTop: 24,
     marginBottom: 8,
@@ -140,17 +147,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   continueBtn: {
-    backgroundColor: colors.buttonPrimary,
-    borderRadius: 30,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
   },
   continueBtnDisabled: {
-    opacity: 0.5,
+    backgroundColor: colors.primaryLight,
+    opacity: 0.7,
   },
   continueBtnText: {
-    color: colors.buttonPrimaryText,
+    color: colors.textOnPrimary,
     fontSize: fonts.md,
     fontWeight: fonts.semibold,
   },
